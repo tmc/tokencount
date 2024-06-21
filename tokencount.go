@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
+	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 
 	"github.com/pkoukk/tiktoken-go"
@@ -16,21 +18,59 @@ func main() {
 }
 
 func run() error {
-	text, err := ioutil.ReadAll(os.Stdin)
-	if err != nil {
-		return err
-	}
-	encoding := "cl100k_base"
+	encoding := flag.String("encoding", "o200k_base", "Encoding to use")
+	verbose := flag.Bool("verbose", false, "Verbose output")
+	flag.Parse()
 
-	tke, err := tiktoken.GetEncoding(encoding)
+	tke, err := tiktoken.GetEncoding(*encoding)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get encoding: %w", err)
 	}
 
-	// encode
-	token := tke.Encode(string(text), nil, nil)
+	files := flag.Args()
+	if len(files) == 0 {
+		files = []string{"-"} // Use stdin if no files specified
+	}
 
-	// num_tokens
-	fmt.Println(len(token))
+	for _, file := range files {
+		if err := processFile(file, tke, *verbose); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func processFile(filename string, tke *tiktoken.Tiktoken, verbose bool) error {
+	var reader io.Reader
+	if filename == "-" {
+		reader = os.Stdin
+	} else {
+		file, err := os.Open(filename)
+		if err != nil {
+			return fmt.Errorf("failed to open file %s: %w", filename, err)
+		}
+		defer file.Close()
+		reader = file
+	}
+
+	scanner := bufio.NewScanner(reader)
+	var totalTokens int
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		tokens := tke.Encode(line, nil, nil)
+		totalTokens += len(tokens)
+
+		if verbose {
+			fmt.Printf("Line: %s\nTokens: %d\n\n", line, len(tokens))
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("error reading input: %w", err)
+	}
+
+	fmt.Println(totalTokens)
 	return nil
 }
