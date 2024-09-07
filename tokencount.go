@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"io"
@@ -54,23 +53,17 @@ func processFile(filename string, tke *tiktoken.Tiktoken, verbose bool) error {
 		reader = file
 	}
 
-	scanner := bufio.NewScanner(reader)
-	var totalTokens int
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		tokens := tke.Encode(line, nil, nil)
-		totalTokens += len(tokens)
-
-		if verbose {
-			fmt.Printf("Line: %s\nTokens: %d\n\n", line, len(tokens))
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
+	content, err := io.ReadAll(reader)
+	if err != nil {
 		return fmt.Errorf("error reading input: %w", err)
 	}
 
-	fmt.Println(totalTokens)
+	tokens := tke.Encode(string(content), nil, nil)
+	totalTokens := len(tokens)
+
+	if verbose {
+		fmt.Printf("Tokens in %s: %d\n", filename, totalTokens)
+	}
+	fmt.Printf("\t%d %s\n", totalTokens, filename)
 	return nil
 }
