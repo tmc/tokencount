@@ -6,7 +6,7 @@ stdout '2 hello.txt'
 
 # Test with multi-word file
 tokencount input.txt
-stdout '6 input.txt'
+stdout '7 input.txt'
 
 # Test with stdin
 stdin-tokencount hello.txt

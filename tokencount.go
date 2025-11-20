@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/pkoukk/tiktoken-go"
+	"github.com/tmc/tokencount/bpe"
 )
 
 func main() {
@@ -17,11 +17,11 @@ func main() {
 }
 
 func run() error {
-	encoding := flag.String("encoding", "o200k_base", "Encoding to use")
+	encoding := flag.String("encoding", "anthropic", "Encoding to use (anthropic, o200k_base, cl100k_base, p50k_base, r50k_base)")
 	verbose := flag.Bool("verbose", false, "Verbose output")
 	flag.Parse()
 
-	tke, err := tiktoken.GetEncoding(*encoding)
+	enc, err := bpe.NewEncoder(*encoding)
 	if err != nil {
 		return fmt.Errorf("failed to get encoding: %w", err)
 	}
@@ -32,7 +32,7 @@ func run() error {
 	}
 
 	for _, file := range files {
-		if err := processFile(file, tke, *verbose); err != nil {
+		if err := processFile(file, enc, *verbose); err != nil {
 			return err
 		}
 	}
@@ -40,7 +40,7 @@ func run() error {
 	return nil
 }
 
-func processFile(filename string, tke *tiktoken.Tiktoken, verbose bool) error {
+func processFile(filename string, enc bpe.Counter, verbose bool) error {
 	var reader io.Reader
 	if filename == "-" {
 		reader = os.Stdin
@@ -58,8 +58,7 @@ func processFile(filename string, tke *tiktoken.Tiktoken, verbose bool) error {
 		return fmt.Errorf("error reading input: %w", err)
 	}
 
-	tokens := tke.Encode(string(content), nil, nil)
-	totalTokens := len(tokens)
+	totalTokens := enc.Count(string(content))
 
 	if verbose {
 		fmt.Printf("Tokens in %s: %d\n", filename, totalTokens)
