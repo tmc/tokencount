@@ -1,0 +1,23 @@
+# Test basic token counting
+
+# Test with simple word
+tokencount hello.txt
+stdout '2 hello.txt'
+
+# Test with multi-word file
+tokencount input.txt
+stdout '6 input.txt'
+
+# Test with stdin
+stdin-tokencount hello.txt
+stdout '2 -'
+
+# Test stdin with args
+stdin-tokencount hello.txt -verbose
+stdout 'Tokens in -: 2'
+stdout '2 -'
+
+-- hello.txt --
+Hello
+-- input.txt --
+This is a test file.
